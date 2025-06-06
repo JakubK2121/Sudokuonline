@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <!-- Base application theme. -->
+    <style name="Theme.SudokoOnline" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <!-- Primary brand color. -->
+        <item name="colorPrimary">@color/myBlue</item>
+        <item name="colorPrimaryVariant">@color/myDarkBlue</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <!-- Secondary brand color. -->
+        <item name="colorSecondary">@color/myAccent</item>
+        <item name="colorSecondaryVariant">@color/myDarkAccent</item>
+        <item name="colorOnSecondary">@android:color/black</item>
+        <!-- Status bar color. -->
+        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+        <!-- Customize your theme here. -->
+    </style>
+
+    <style name="SudokuCellStyle">
+        <!-- Wymiary są teraz kontrolowane przez wagi i rozmiar GridLayout -->
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">0dp</item>
+        <item name="android:layout_columnWeight">1</item>
+        <item name="android:layout_rowWeight">1</item>
+        <!-- Tło będzie ustawiane dynamicznie lub na domyślne cell_background_default -->
+        <item name="android:background">@drawable/cell_background_default</item>
+        <item name="android:gravity">center</item>
+        <item name="android:textSize">18sp</item> <!-- Dostosuj rozmiar czcionki do komórek -->
+        <item name="android:inputType">none</item>
+        <item name="android:textIsSelectable">false</item>
+        <item name="android:padding">2dp</item>
+        <!-- Marginesy są teraz ustawiane programistycznie w SinglePlayer.kt -->
+    </style>
+
+    <style name="NumberButtonStyle">
+        <item name="android:layout_width">wrap_content</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:minWidth">48dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:layout_margin">4dp</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+</resources>

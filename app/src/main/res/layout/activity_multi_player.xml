@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/multiplayer_layout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp"
+    tools:context=".MultiPlayerActivity">
+
+    <TextView
+        android:id="@+id/status_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Status: Oczekiwanie..."
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        android:layout_marginBottom="16dp"
+        android:gravity="center_horizontal" />
+
+    <Button
+        android:id="@+id/host_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Stwórz Lobby (Host)"
+        android:layout_marginBottom="8dp"/>
+
+    <Button
+        android:id="@+id/discover_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Szukaj Lobby"
+        android:layout_marginBottom="16dp"/>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Dostępni Gracze/Lobby:"
+        android:textAppearance="@style/TextAppearance.AppCompat.Small"
+        android:layout_marginBottom="4dp"/>
+
+    <!-- Można użyć RecyclerView dla lepszej wydajności, ale ListView jest prostsze na start -->
+    <ListView
+        android:id="@+id/devices_list_view"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:choiceMode="singleChoice" />
+
+    <Button
+        android:id="@+id/disconnect_button"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Rozłącz"
+        android:layout_marginTop="8dp"
+        android:visibility="gone" />
+
+    <Button
+        android:id="@+id/send_msg_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Wyślij Test"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"/>
+
+    <TextView
+        android:id="@+id/received_msg_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="Odebrane wiadomości..."
+        android:gravity="center_horizontal"
+        android:visibility="gone"/>
+
+</LinearLayout>

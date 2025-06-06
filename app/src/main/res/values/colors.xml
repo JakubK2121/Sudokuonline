@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="myBlue">#3F51B5</color> <!-- Klasyczny Indigo -->
+    <color name="myDarkBlue">#303F9F</color> <!-- Ciemniejszy Indigo -->
+    <color name="myAccent">#FF4081</color> <!-- Różowy jako akcent -->
+    <color name="myDarkAccent">#F50057</color> <!-- Ciemniejszy różowy -->
+</resources>
