@@ -729,8 +729,14 @@ class MultiPlayerViewModel : ViewModel() {
                     TAG,
                     "### DIAGNOSTYKA KLIENTA ### Plansza poprawnie ustawiona w _sudokuBoard. Pierwszy wiersz: ${boardAfterSet[0].joinToString()}"
                 )
+
+                // Wyślij potwierdzenie odbioru planszy do hosta
+                if (_isHost.value != true) {
+                    sendBoardReceivedConfirmation()
+                }
             } else {
                 Log.e(TAG, "### DIAGNOSTYKA KLIENTA ### BŁĄD: _sudokuBoard.value nadal jest null po ustawieniu!")
+                return
             }
 
             // Oblicz początkową liczbę wypełnionych komórek
@@ -758,10 +764,6 @@ class MultiPlayerViewModel : ViewModel() {
 
                 // Dodatkowe potwierdzenie
                 Log.d(TAG, "### DIAGNOSTYKA KLIENTA ### Event nawigacji wysłany. Status: ${_navigateToGameEvent.value?.hasBeenHandled}")
-
-                // Dodatkowe opóźnienie i ponowne sprawdzenie
-                kotlinx.coroutines.delay(100)
-                Log.d(TAG, "### DIAGNOSTYKA KLIENTA ### Status eventu po 100ms: ${_navigateToGameEvent.value?.hasBeenHandled}")
             }
 
         } catch (e: Exception) {
@@ -1033,28 +1035,30 @@ class MultiPlayerViewModel : ViewModel() {
         Log.d(TAG, "setupAndStartGame: Host is preparing game...")
         showToast("Przygotowywanie gry...")
 
-        // Używamy statycznej tablicy zamiast dynamicznego generowania
+        // Używamy generatora plansz zamiast statycznych tablic
         viewModelScope.launch {
             try {
-                // Używamy predefiniowanej planszy zamiast generowania nowej
-                val staticPuzzle = STATIC_SUDOKU_BOARD.map { it.clone() }.toTypedArray()
-                val staticSolution = STATIC_SUDOKU_SOLUTION.map { it.clone() }.toTypedArray()
+                // Generujemy nową planszę Sudoku z mniejszą trudnością (mniej pustych komórek)
+                // dla szybszej rozgrywki w trybie wieloosobowym
+                val difficulty = 30 // Mniej pustych komórek niż w trybie SinglePlayer (domyślnie 40)
+                val (puzzleBoard, solutionBoard) = SudokuLogic.generateNewGame(difficulty)
 
-                // Sprawdzamy poprawność plansz
+                // Logujemy wygenerowaną planszę do celów diagnostycznych
+                Log.d(TAG, "Generated Sudoku board with difficulty: $difficulty")
+                for (i in 0..8) {
+                    Log.d(TAG, "Generated board row $i: ${puzzleBoard[i].joinToString()}")
+                }
+
                 withContext(Dispatchers.Main) {
-                    Log.d(TAG, "Using static Sudoku board for testing")
-
-                    for (i in 0..8) {
-                        Log.d(TAG, "Board row $i: ${staticPuzzle[i].joinToString()}")
-                    }
+                    Log.d(TAG, "Setting generated Sudoku board")
 
                     // Najpierw ustaw planszę lokalnie
-                    _sudokuBoard.value = staticPuzzle
-                    sudokuSolution = staticSolution
+                    _sudokuBoard.value = puzzleBoard
+                    sudokuSolution = solutionBoard
 
                     // Liczymy wypełnione komórki
-                    initialFilledCells = countFilledCells(staticPuzzle)
-                    Log.d(TAG, "Static board has $initialFilledCells filled cells")
+                    initialFilledCells = countFilledCells(puzzleBoard)
+                    Log.d(TAG, "Generated board has $initialFilledCells filled cells")
 
                     // Aktualizuj stan gry
                     val gameStateValue = _gameState.value ?: GameState()
@@ -1064,7 +1068,7 @@ class MultiPlayerViewModel : ViewModel() {
                     showToast("Wysyłanie planszy do przeciwnika...")
 
                     // WAŻNE: Wyślij planszę do klienta PRZED nawigacją do ekranu gry
-                    sendGameBoard(staticPuzzle, staticSolution)
+                    sendGameBoard(puzzleBoard, solutionBoard)
 
                     // Ustawimy small delay przed nawigacją do gry
                     kotlinx.coroutines.delay(1500)
@@ -1375,9 +1379,8 @@ class MultiPlayerViewModel : ViewModel() {
         const val MESSAGE_TYPE_GAME_START = "GAME_START"
         const val MESSAGE_TYPE_PROGRESS_UPDATE = "PROGRESS_UPDATE"
         const val MESSAGE_TYPE_GAME_COMPLETE = "GAME_COMPLETE"
-        const val MESSAGE_TYPE_PLAYER_READY = "PLAYER_READY" // Typ wiadomości dla gotowości gracza
-        const val MESSAGE_TYPE_BOARD_RECEIVED =
-            "BOARD_RECEIVED" // Nowy typ dla potwierdzenia odbioru planszy
+        const val MESSAGE_TYPE_PLAYER_READY = "PLAYER_READY"
+        const val MESSAGE_TYPE_BOARD_RECEIVED = "BOARD_RECEIVED" // Nowy typ dla potwierdzenia odbioru planszy
 
         // NOWA UPROSZCZONA TABLICA - Z BARDZO MAŁĄ LICZBĄ PUSTYCH KOMÓREK (TYLKO 9)
         val SIMPLE_TEST_BOARD = arrayOf(
@@ -1488,4 +1491,30 @@ class MultiPlayerViewModel : ViewModel() {
         val success: Boolean,
         val message: String = ""
     )
+    /**
+     * Wysyłanie potwierdzenia odbioru planszy przez klienta
+     */
+    private fun sendBoardReceivedConfirmation() {
+        try {
+            Log.d(TAG, "Sending board received confirmation to host")
+
+            val boardReceivedMsg = BoardReceivedMessage(
+                deviceId = myDeviceId,
+                success = true,
+                message = "Plansza odebrana poprawnie"
+            )
+
+            val message = MultiplayerMessage(
+                type = MESSAGE_TYPE_BOARD_RECEIVED,
+                payload = gson.toJson(boardReceivedMsg)
+            )
+
+            val messageJson = gson.toJson(message)
+            sendMessage(messageJson)
+
+            Log.d(TAG, "Board received confirmation sent to host")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error sending board received confirmation: ${e.message}", e)
+        }
+    }
 }
