@@ -9,16 +9,38 @@
     android:padding="16dp"
     tools:context=".MultiPlayerActivity">
 
-    <!-- Przesuwam button'y wyżej, a status niżej -->
+    <!-- Tytuł ekranu -->
+    <TextView
+        android:id="@+id/multiplayer_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Gra Multiplayer"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="24dp"/>
+
+    <!-- Status -->
+    <TextView
+        android:id="@+id/status_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="16dp"
+        android:background="#F5F5F7"
+        android:gravity="center_horizontal"
+        android:padding="8dp"
+        android:text="Status: Oczekiwanie..."
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        android:textColor="#000000" />
+
+    <!-- Przyciski podstawowe -->
     <Button
         android:id="@+id/host_button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Stwórz Lobby (Host)"
-        android:layout_marginTop="16dp"
         android:layout_marginBottom="8dp"/>
-
-    <!-- Status przesunięty niżej, po przyciskach -->
 
     <Button
         android:id="@+id/discover_button"
@@ -26,18 +48,6 @@
         android:layout_height="wrap_content"
         android:layout_marginBottom="16dp"
         android:text="Szukaj Lobby" />
-
-    <TextView
-        android:id="@+id/status_text"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:background="#EEEEEE"
-        android:gravity="center_horizontal"
-        android:padding="8dp"
-        android:text="Status: Oczekiwanie..."
-        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
-        android:textColor="#000000" />
 
     <!-- Nowy przycisk do rozpoczęcia gry -->
     <Button
@@ -53,17 +63,17 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Dostępni Gracze/Lobby:"
-        android:textAppearance="@style/TextAppearance.AppCompat.Small"
-        android:layout_marginBottom="4dp"/>
+        android:textAppearance="@style/TextAppearance.AppCompat.Medium"
+        android:layout_marginBottom="8dp"/>
 
-    <!-- Można użyć RecyclerView dla lepszej wydajności, ale ListView jest prostsze na start -->
-
+    <!-- Lista dostępnych urządzeń -->
     <ListView
         android:id="@+id/devices_list_view"
-        android:layout_width="wrap_content"
+        android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:choiceMode="singleChoice" />
+        android:choiceMode="singleChoice"
+        android:background="#F5F5F7"/>
 
     <Button
         android:id="@+id/disconnect_button"

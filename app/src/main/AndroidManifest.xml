@@ -37,13 +37,16 @@
             android:exported="false" />
         <activity
             android:name="com.example.sudokoonline.SinglePlayer"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.SudokoOnline.NoActionBar" />
         <activity
             android:name="com.example.sudokoonline.MultiPlayerActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.SudokoOnline.NoActionBar" />
         <activity
             android:name="com.example.sudokoonline.CompetitiveMultiplayerActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:theme="@style/Theme.SudokoOnline.NoActionBar" />
 
     </application>
 

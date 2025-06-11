@@ -15,6 +15,21 @@
         <!-- Customize your theme here. -->
     </style>
 
+    <!-- Styl bez ActionBar/AppBar dla aktywności multiplayer -->
+    <style name="Theme.SudokoOnline.NoActionBar" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+        <!-- Dziedzicz kolory z głównego motywu -->
+        <item name="colorPrimary">@color/myBlue</item>
+        <item name="colorPrimaryVariant">@color/myDarkBlue</item>
+        <item name="colorOnPrimary">@android:color/white</item>
+        <item name="colorSecondary">@color/myAccent</item>
+        <item name="colorSecondaryVariant">@color/myDarkAccent</item>
+        <item name="colorOnSecondary">@android:color/black</item>
+        <item name="android:statusBarColor" tools:targetApi="l">?attr/colorPrimaryVariant</item>
+        <!-- Upewnij się, że ActionBar jest ukryty -->
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+    </style>
+
     <style name="SudokuCellStyle">
         <!-- Wymiary są teraz kontrolowane przez wagi i rozmiar GridLayout -->
         <item name="android:layout_width">0dp</item>

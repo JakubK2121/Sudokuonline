@@ -17,6 +17,7 @@
         android:text="Gra w toku..."
         android:textAlignment="center"
         android:textSize="18sp"
+        android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -33,20 +34,32 @@
         app:layout_constraintEnd_toEndOf="@id/gameStatusText"
         app:layout_constraintTop_toBottomOf="@id/gameStatusText" />
 
-    <!-- Paski postępu graczy -->
+    <!-- Etykiety dla pasków postępu -->
+    <TextView
+        android:id="@+id/myLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp"
+        android:text="Ty:"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/opponentInfoTextView" />
+
+    <!-- Pasek postępu gracza -->
     <ProgressBar
         android:id="@+id/myProgressBar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:max="100"
         android:progress="0"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/myLabel"
         app:layout_constraintEnd_toStartOf="@+id/myProgressTextView"
-        app:layout_constraintTop_toBottomOf="@id/opponentInfoTextView" />
+        app:layout_constraintTop_toTopOf="@+id/myLabel"
+        app:layout_constraintBottom_toBottomOf="@+id/myLabel" />
 
     <TextView
         android:id="@+id/myProgressTextView"
@@ -59,19 +72,32 @@
         app:layout_constraintTop_toTopOf="@id/myProgressBar"
         app:layout_constraintBottom_toBottomOf="@id/myProgressBar" />
 
+    <!-- Etykieta dla przeciwnika -->
+    <TextView
+        android:id="@+id/opponentLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="12dp"
+        android:text="Przeciwnik:"
+        android:textStyle="bold"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/myProgressBar" />
+
+    <!-- Pasek postępu przeciwnika -->
     <ProgressBar
         android:id="@+id/opponentProgressBar"
         style="?android:attr/progressBarStyleHorizontal"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:layout_marginStart="16dp"
+        android:layout_marginStart="8dp"
         android:layout_marginEnd="8dp"
         android:max="100"
         android:progress="0"
-        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/opponentLabel"
         app:layout_constraintEnd_toStartOf="@+id/opponentProgressTextView"
-        app:layout_constraintTop_toBottomOf="@id/myProgressBar" />
+        app:layout_constraintTop_toTopOf="@+id/opponentLabel"
+        app:layout_constraintBottom_toBottomOf="@+id/opponentLabel" />
 
     <TextView
         android:id="@+id/opponentProgressTextView"
@@ -84,35 +110,13 @@
         app:layout_constraintTop_toTopOf="@id/opponentProgressBar"
         app:layout_constraintBottom_toBottomOf="@id/opponentProgressBar" />
 
-    <TextView
-        android:id="@+id/myLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:text="Ty"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/myProgressBar"
-        app:layout_constraintBottom_toBottomOf="@id/myProgressBar" />
-
-    <TextView
-        android:id="@+id/opponentLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="16dp"
-        android:text="Przeciwnik"
-        android:textStyle="bold"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/opponentProgressBar"
-        app:layout_constraintBottom_toBottomOf="@id/opponentProgressBar" />
-
     <!-- Plansza Sudoku -->
     <GridLayout
         android:id="@+id/sudokuGridMultiplayer"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="24dp"
         android:layout_marginEnd="16dp"
         android:background="@android:color/black"
         android:columnCount="9"
