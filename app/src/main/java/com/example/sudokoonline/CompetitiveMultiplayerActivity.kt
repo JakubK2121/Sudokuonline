@@ -293,6 +293,9 @@ class CompetitiveMultiplayerActivity : AppCompatActivity() {
             markFixedCells(board)
 
             Toast.makeText(this, "Plansza Sudoku załadowana!", Toast.LENGTH_SHORT).show()
+
+            // Aktualizuj status gry na "Gra w toku!" gdy plansza zostanie załadowana
+            gameStatusText.text = "Gra w toku!"
         })
 
         // Obserwuj postęp gracza
@@ -309,7 +312,10 @@ class CompetitiveMultiplayerActivity : AppCompatActivity() {
 
         // Obserwuj nazwę przeciwnika
         viewModel.opponentName.observe(this, Observer { name ->
-            opponentInfoTextView.text = "Przeciwnik: $name"
+            Log.d(TAG, "Otrzymano nazwę przeciwnika: $name")
+            if (name.isNotEmpty() && name != "Przeciwnik") {
+                opponentInfoTextView.text = "Przeciwnik: $name"
+            }
         })
 
         // Obserwuj wynik gry (wygrana/przegrana)
@@ -336,15 +342,16 @@ class CompetitiveMultiplayerActivity : AppCompatActivity() {
 
         // Stan gry (status, rozpoczęcie, itp.)
         viewModel.gameState.observe(this, Observer { gameState ->
+            Log.d(TAG, "Zmiana stanu gry na: ${gameState.status}")
             when (gameState.status) {
-                GameStatus.WAITING_FOR_PLAYERS -> {
-                    gameStatusText.text = "Oczekiwanie na graczy..."
-                }
-                GameStatus.STARTING -> {
-                    gameStatusText.text = "Rozpoczynanie gry..."
-                }
-                GameStatus.IN_PROGRESS -> {
+                GameStatus.WAITING_FOR_PLAYERS, GameStatus.STARTING, GameStatus.IN_PROGRESS -> {
+                    // Zawsze pokazujemy tylko "Gra w toku!" niezależnie od faktycznego stanu
                     gameStatusText.text = "Gra w toku!"
+
+                    // Sprawdź czy mamy nazwę przeciwnika
+                    if (viewModel.opponentName.value != null && viewModel.opponentName.value != "Przeciwnik") {
+                        opponentInfoTextView.text = "Przeciwnik: ${viewModel.opponentName.value}"
+                    }
                 }
                 GameStatus.FINISHED -> {
                     val winner = gameState.players.find { it.deviceId == gameState.winnerDeviceId }

@@ -321,31 +321,22 @@ class MultiPlayerViewModel : ViewModel() {
     }
 
     fun onConnectionInfoAvailable(info: WifiP2pInfo) {
-        Log.d(
-            TAG,
-            "Connection info available. Is Group Owner: ${info.isGroupOwner}, Group Formed: ${info.groupFormed}, Address: ${info.groupOwnerAddress?.hostAddress}"
-        )
+        Log.d(TAG, "Connection info available. Is Group Owner: ${info.isGroupOwner}, Group Formed: ${info.groupFormed}")
         currentGroupInfo = info
 
         if (info.groupFormed) {
             _isHost.value = info.isGroupOwner
 
             if (info.isGroupOwner) {
-                Log.i(
-                    TAG,
-                    "Lobby successfully created! IP: ${info.groupOwnerAddress?.hostAddress}. Waiting for client to connect socket..."
-                )
-                updateStatus("Lobby stworzone! IP: ${info.groupOwnerAddress?.hostAddress}. Oczekiwanie na gracza...")
+                // Host inicjuje server socket
+                updateStatus("Oczekiwanie na połączenie...")
                 _isHostButtonEnabled.value = false
                 _isDiscoverButtonEnabled.value = false
                 _isDisconnectButtonVisible.value = true
                 startServerSocket()
             } else {
-                Log.i(
-                    TAG,
-                    "Connected to lobby as client. Host IP: ${info.groupOwnerAddress?.hostAddress}"
-                )
-                updateStatus("Połączono z lobby jako klient. Host IP: ${info.groupOwnerAddress?.hostAddress}")
+                // Klient łączy się z server socketem hosta
+                updateStatus("Łączenie...")
                 _isHostButtonEnabled.value = false
                 _isDiscoverButtonEnabled.value = false
                 _isDisconnectButtonVisible.value = true
@@ -353,7 +344,7 @@ class MultiPlayerViewModel : ViewModel() {
             }
         } else {
             Log.w(TAG, "Connection info available, but group not formed yet.")
-            updateStatus("Oczekiwanie na sformowanie grupy...")
+            updateStatus("Oczekiwanie na połączenie...")
         }
     }
 
@@ -412,36 +403,42 @@ class MultiPlayerViewModel : ViewModel() {
 
     private fun startServerSocket() {
         if (serverSocket != null && !serverSocket!!.isClosed) {
-            Log.w(TAG, "Server socket already running or not properly closed.")
+            Log.w(TAG, "Server socket already running")
             return
         }
+
         communicationJob = viewModelScope.launch(Dispatchers.IO) {
             try {
                 serverSocket = ServerSocket(SOCKET_PORT)
-                Log.i(TAG, "Host: ServerSocket started on port $SOCKET_PORT. Waiting for client...")
+                Log.i(TAG, "Host: ServerSocket started on port $SOCKET_PORT")
+
                 withContext(Dispatchers.Main) {
-                    updateStatus("Host: Oczekiwanie na połączenie klienta (socket)...")
+                    updateStatus("Oczekiwanie na połączenie...")
                 }
+
+                // Blokuje wątek do czasu połączenia klienta
                 clientSocket = serverSocket!!.accept()
-                Log.i(TAG, "Host: Client connected! ${clientSocket?.inetAddress?.hostAddress}")
-                withContext(Dispatchers.Main) {
-                    updateStatus("Host: Klient połączony przez socket! (${clientSocket?.inetAddress?.hostAddress})")
-                    _isCommunicationLayoutVisible.value = true
-                }
+                Log.i(TAG, "Host: Client connected!")
+
+                // Po połączeniu inicjujemy strumienie i aktualizujemy UI
                 outputStream = clientSocket?.getOutputStream()
                 inputStream = clientSocket?.getInputStream()
+
+                withContext(Dispatchers.Main) {
+                    updateStatus("Połączono!")
+                    _isCommunicationLayoutVisible.value = true
+                }
+
+                // Rozpoczynamy nasłuchiwanie wiadomości
                 listenForMessages()
             } catch (e: IOException) {
-                if (communicationJob?.isActive == true) { // Sprawdzamy job korutyny
-                    Log.e(TAG, "Host: ServerSocket IOException: ${e.message}", e)
+                if (communicationJob?.isActive == true) {
+                    Log.e(TAG, "Host: ServerSocket error: ${e.message}", e)
                     withContext(Dispatchers.Main) {
-                        updateStatus("Host: Błąd ServerSocket: ${e.message}")
-                        showToast("Błąd serwera: ${e.message}")
+                        updateStatus("Błąd połączenia: ${e.message}")
                         _isCommunicationLayoutVisible.value = false
                     }
                 }
-            } finally {
-                Log.d(TAG, "Host: Server socket communication scope finished.")
             }
         }
     }
@@ -454,107 +451,52 @@ class MultiPlayerViewModel : ViewModel() {
         }
 
         // Zamykamy poprzednie połączenie, jeśli istnieje
-        if (clientSocket != null) {
-            try {
-                Log.d(TAG, "Client: Closing previous socket before new connection.")
-                stopSocketCommunication()
-            } catch (e: Exception) {
-                Log.e(TAG, "Client: Error closing previous socket: ${e.message}")
-            }
-        }
+        stopSocketCommunication()
 
         communicationJob = viewModelScope.launch(Dispatchers.IO) {
             try {
-                Log.i(
-                    TAG,
-                    "Client: Attempting to connect socket to ${hostAddress.hostAddress}:$SOCKET_PORT..."
-                )
                 withContext(Dispatchers.Main) {
-                    updateStatus("Klient: Łączenie z hostem przez socket (${hostAddress.hostAddress})...")
+                    updateStatus("Łączenie z hostem...")
                 }
 
                 val newSocket = Socket()
-
                 // Ustawiamy opcje socketu przed połączeniem
                 newSocket.keepAlive = true
                 newSocket.reuseAddress = true
                 newSocket.tcpNoDelay = true
 
-                // Zwiększony timeout do 15 sekund
-                Log.d(TAG, "Client: Setting socket connection timeout to 15000ms")
                 val socketAddress = InetSocketAddress(hostAddress, SOCKET_PORT)
+                newSocket.connect(socketAddress, 5000) // Zmniejszony timeout do 5 sekund
 
-                try {
-                    Log.d(TAG, "Client: Starting socket connection...")
-                    newSocket.connect(socketAddress, 15000)
-                } catch (e: IOException) {
-                    Log.e(TAG, "Client: Failed to connect: ${e.message}", e)
-                    throw e
+                if (!newSocket.isConnected) {
+                    throw IOException("Nie można nawiązać połączenia z hostem")
                 }
 
-                // Sprawdzamy, czy socket faktycznie się połączył
-                if (!newSocket.isConnected || newSocket.isClosed) {
-                    Log.e(
-                        TAG,
-                        "Client: Socket connected=${newSocket.isConnected}, closed=${newSocket.isClosed}"
-                    )
-                    throw IOException("Socket did not connect properly or was immediately closed")
-                }
-
-                // Socket połączony poprawnie, przypisujemy go do zmiennej klasy
+                // Socket połączony poprawnie
                 clientSocket = newSocket
+                outputStream = clientSocket?.getOutputStream()
+                inputStream = clientSocket?.getInputStream()
 
-                Log.i(TAG, "Client: Connected to host socket!")
                 withContext(Dispatchers.Main) {
-                    updateStatus("Klient: Połączono z hostem przez socket!")
+                    updateStatus("Połączono!")
                     _isCommunicationLayoutVisible.value = true
                 }
 
-                // Pozyskiwanie strumieni
-                Log.d(TAG, "Client: Obtaining I/O streams...")
-                try {
-                    outputStream = clientSocket?.getOutputStream()
-                    inputStream = clientSocket?.getInputStream()
-                } catch (e: IOException) {
-                    Log.e(TAG, "Client: Failed to obtain streams: ${e.message}", e)
-                    throw IOException("Failed to obtain socket streams: ${e.message}")
-                }
-
-                // Sprawdź czy strumienie zostały poprawnie utworzone
-                if (outputStream == null || inputStream == null) {
-                    Log.e(TAG, "Client: Input or output stream is null after connection")
-                    throw IOException("Failed to obtain socket streams - streams are null")
-                }
-
-                Log.i(TAG, "Client: Streams obtained successfully, starting to listen for messages")
                 listenForMessages()
 
             } catch (e: IOException) {
-                if (communicationJob?.isActive == true) { // Sprawdzamy job korutyny
-                    Log.e(TAG, "Client: Socket IOException: ${e.message}", e)
-                    withContext(Dispatchers.Main) {
-                        updateStatus("Klient: Błąd połączenia socket: ${e.message}")
-                        showToast("Błąd połączenia z hostem: ${e.message}")
-                        _isCommunicationLayoutVisible.value = false
-                    }
+                Log.e(TAG, "Client: Socket error: ${e.message}", e)
+                withContext(Dispatchers.Main) {
+                    updateStatus("Błąd połączenia: ${e.message}")
+                    showToast("Błąd połączenia z hostem")
                 }
-                stopSocketCommunication() // Dodane - zawsze zwalniamy zasoby przy wyjątku
+                stopSocketCommunication()
             } catch (e: Exception) {
-                // Dodane łapanie innych typów wyjątków
                 Log.e(TAG, "Client: Unexpected error: ${e.message}", e)
                 withContext(Dispatchers.Main) {
-                    updateStatus("Klient: Nieoczekiwany błąd: ${e.message}")
-                    showToast("Nieoczekiwany błąd: ${e.message}")
-                    _isCommunicationLayoutVisible.value = false
+                    updateStatus("Nieoczekiwany błąd: ${e.message}")
                 }
-                stopSocketCommunication() // Dodane - zawsze zwalniamy zasoby przy wyjątku
-            } finally {
-                Log.d(TAG, "Client: Socket communication scope finished.")
-                if (clientSocket?.isConnected != true) {
-                    // Upewnij się, że zasoby są zwolnione jeśli nie ma połączenia
-                    Log.d(TAG, "Client: Socket not connected in finally block, cleaning up")
-                    stopSocketCommunication()
-                }
+                stopSocketCommunication()
             }
         }
     }
@@ -1062,7 +1004,12 @@ class MultiPlayerViewModel : ViewModel() {
 
                     // Aktualizuj stan gry
                     val gameStateValue = _gameState.value ?: GameState()
-                    gameStateValue.status = GameStatus.STARTING
+
+                    // ZMIANA: Ustaw status IN_PROGRESS już przed wysłaniem planszy
+                    // zamiast STARTING, co zapewni, że status będzie prawidłowy
+                    // w momencie przejścia do ekranu gry
+                    gameStateValue.status = GameStatus.IN_PROGRESS
+                    gameStateValue.start()
                     _gameState.value = gameStateValue
 
                     showToast("Wysyłanie planszy do przeciwnika...")
@@ -1072,11 +1019,6 @@ class MultiPlayerViewModel : ViewModel() {
 
                     // Ustawimy small delay przed nawigacją do gry
                     kotlinx.coroutines.delay(1500)
-
-                    // Aktualizuj stan gry do IN_PROGRESS
-                    gameStateValue.status = GameStatus.IN_PROGRESS
-                    gameStateValue.start()
-                    _gameState.value = gameStateValue
 
                     // Przejdź do ekranu gry
                     Log.d(
