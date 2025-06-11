@@ -3,7 +3,7 @@ package com.example.sudokoonline
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
-
+import com.example.sudokoonline.util.Event
 
 class MainViewModel : ViewModel() {
 

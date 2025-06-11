@@ -9,6 +9,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.net.NetworkInfo
+import android.net.wifi.WifiManager
 import android.net.wifi.p2p.WifiP2pConfig
 import android.net.wifi.p2p.WifiP2pDevice
 import android.net.wifi.p2p.WifiP2pDeviceList
@@ -17,7 +18,7 @@ import android.net.wifi.p2p.WifiP2pManager
 import android.os.Build
 import android.os.Bundle
 import android.os.Looper
-// import android.provider.Settings // Usunięto, jeśli nie jest używane bezpośrednio
+import android.provider.Settings
 import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.Button
@@ -32,19 +33,11 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
-// import com.example.sudokoonline.util.Event // Upewnij się, że Event.kt jest w odpowiednim pakiecie; zakładam, że jest
-// import kotlinx.coroutines.CoroutineScope // Usunięto, jeśli activityScope nie jest używane
-// import kotlinx.coroutines.Dispatchers // Usunięto, jeśli activityScope nie jest używane
-// import kotlinx.coroutines.Job // Usunięto, jeśli activityScope nie jest używane
-// import kotlinx.coroutines.launch // Usunięto, jeśli activityScope nie jest używane
-// import kotlinx.coroutines.withContext // Usunięto, jeśli activityScope nie jest używane
-// import java.io.IOException // Przeniesione do ViewModel, jeśli tam jest logika I/O
-// import java.io.InputStream // Przeniesione do ViewModel
-// import java.io.OutputStream // Przeniesione do ViewModel
-// import java.net.InetAddress // Przeniesione do ViewModel
-// import java.net.InetSocketAddress // Przeniesione do ViewModel
-// import java.net.ServerSocket // Przeniesione do ViewModel
-// import java.net.Socket // Przeniesione do ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.ViewModelStoreOwner
+import com.example.sudokoonline.util.Event
+
 
 // Funkcja rozszerzająca przeniesiona na najwyższy poziom pliku dla lepszej widoczności
 fun WifiP2pDevice.statusToString(): String {
@@ -61,7 +54,17 @@ fun WifiP2pDevice.statusToString(): String {
 class MultiPlayerActivity : AppCompatActivity(), WifiP2pManager.ChannelListener,
     WifiP2pManager.ConnectionInfoListener, WifiP2pManager.PeerListListener {
 
-    private val viewModel: MultiPlayerViewModel by viewModels()
+    // Używamy tej samej referencji do ViewModelu co CompetitiveMultiplayerActivity
+    private val viewModel: MultiPlayerViewModel by lazy {
+        // Najpierw sprawdzamy, czy CompetitiveMultiplayerActivity już utworzyło ViewModel
+        if (CompetitiveMultiplayerActivity.sharedViewModel == null) {
+            Log.d(TAG, "Creating new shared MultiPlayerViewModel")
+            CompetitiveMultiplayerActivity.sharedViewModel = ViewModelProvider(this)[MultiPlayerViewModel::class.java]
+        } else {
+            Log.d(TAG, "Reusing existing shared MultiPlayerViewModel")
+        }
+        CompetitiveMultiplayerActivity.sharedViewModel!!
+    }
 
     private lateinit var statusText: TextView
     private lateinit var hostButton: Button
@@ -70,6 +73,7 @@ class MultiPlayerActivity : AppCompatActivity(), WifiP2pManager.ChannelListener,
     private lateinit var disconnectButton: Button
     private lateinit var sendMsgButton: Button
     private lateinit var receivedMsgText: TextView
+    private lateinit var startGameButton: Button  // Nowy przycisk "Grajmy!"
 
 
     private lateinit var deviceListAdapter: ArrayAdapter<String>
@@ -187,6 +191,7 @@ class MultiPlayerActivity : AppCompatActivity(), WifiP2pManager.ChannelListener,
         disconnectButton = findViewById(R.id.disconnect_button)
         sendMsgButton = findViewById(R.id.send_msg_button)
         receivedMsgText = findViewById(R.id.received_msg_text)
+        startGameButton = findViewById(R.id.start_game_button) // Inicjalizacja przycisku "Grajmy!"
 
 
         deviceListAdapter = ArrayAdapter(this, android.R.layout.simple_list_item_1, mutableListOf())
@@ -214,9 +219,11 @@ class MultiPlayerActivity : AppCompatActivity(), WifiP2pManager.ChannelListener,
             viewModel.onDisconnectClicked()
         }
 
-        sendMsgButton.setOnClickListener {
-            val message = "Hello from ${if (viewModel.isHost.value == true) "Host" else "Client"}!"
-            viewModel.sendMessage(message)
+
+        // Dodajemy obsługę kliknięcia przycisku "Grajmy!"
+        startGameButton.setOnClickListener {
+            Log.d(TAG, "Start game button clicked - sending player ready signal")
+            viewModel.sendPlayerReadySignal()
         }
 
 
@@ -226,8 +233,33 @@ class MultiPlayerActivity : AppCompatActivity(), WifiP2pManager.ChannelListener,
     }
 
 
+    /**
+     * Sprawdza, czy WiFi jest włączone w urządzeniu
+     */
+    private fun isWifiEnabled(): Boolean {
+        val wifiManager = applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        val isWifiEnabled = wifiManager.isWifiEnabled
+
+        if (!isWifiEnabled) {
+            Log.w(TAG, "WiFi is disabled on the device")
+            Toast.makeText(this, "WiFi jest wyłączone. Proszę włączyć WiFi.", Toast.LENGTH_LONG).show()
+
+            // Opcjonalnie można otworzyć ustawienia WiFi
+            startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))
+        }
+
+        return isWifiEnabled
+    }
+
     private fun initializeWifiDirect() {
         Log.d(TAG, "Initializing Wi-Fi Direct")
+
+        // Sprawdź, czy WiFi jest włączone
+        if (!isWifiEnabled()) {
+            viewModel.updateStatus("WiFi jest wyłączone. Proszę włączyć WiFi.")
+            return
+        }
+
         val wifiP2pManager = getSystemService(Context.WIFI_P2P_SERVICE) as? WifiP2pManager
         if (wifiP2pManager == null) {
             Log.e(TAG, "Cannot get WifiP2pManager service.")
@@ -425,8 +457,77 @@ class MultiPlayerActivity : AppCompatActivity(), WifiP2pManager.ChannelListener,
         viewModel.isCommunicationLayoutVisible.observe(this) { isVisible ->
             sendMsgButton.visibility = if (isVisible) Button.VISIBLE else Button.GONE
             receivedMsgText.visibility = if (isVisible) TextView.VISIBLE else TextView.GONE
+
+            // Gdy komunikacja jest nawiązana, pokaż przycisk "Grajmy!"
+            if (isVisible) {
+                startGameButton.visibility = Button.VISIBLE
+            }
         }
 
+        // Obserwuj stan przycisku "Grajmy!"
+        viewModel.isStartGameButtonVisible.observe(this) { isVisible ->
+            startGameButton.visibility = if (isVisible) Button.VISIBLE else Button.GONE
+        }
+
+        // Obserwuj stan gotowości lokalnego gracza
+        viewModel.isLocalPlayerReady.observe(this) { isReady ->
+            if (isReady) {
+                startGameButton.isEnabled = false
+                startGameButton.text = "Czekam na przeciwnika..."
+            }
+        }
+
+        // Obserwuj stan gotowości przeciwnika
+        viewModel.isOpponentReady.observe(this) { isReady ->
+            if (isReady && !viewModel.isLocalPlayerReady.value!!) {
+                startGameButton.text = "Przeciwnik jest gotowy! Kliknij aby dołączyć!"
+            }
+        }
+
+        // Obserwuj stan gotowości obu graczy
+        viewModel.areBothPlayersReady.observe(this) { bothReady ->
+            if (bothReady) {
+                startGameButton.text = "Rozpoczynanie gry..."
+                startGameButton.isEnabled = false
+            }
+        }
+
+
+        // Dodajemy obserwator dla eventu nawigacji do ekranu gry
+        viewModel.navigateToGameEvent.observe(this) { event ->
+            Log.d(TAG, "### DIAGNOSTYKA KLIENTA ### Obserwator navigateToGameEvent został wywołany, hasBeenHandled=${event.hasBeenHandled}")
+            event.getContentIfNotHandled()?.let {
+                Log.d(TAG, "### DIAGNOSTYKA KLIENTA ### Przechodzę do CompetitiveMultiplayerActivity!")
+
+                // Upewnijmy się, że sharedViewModel jest poprawnie ustawiony przed nawigacją
+                if (CompetitiveMultiplayerActivity.sharedViewModel == null) {
+                    Log.d(TAG, "### DIAGNOSTYKA KLIENTA ### Ustawiam sharedViewModel przed nawigacją")
+                    CompetitiveMultiplayerActivity.sharedViewModel = viewModel
+                }
+
+                // Sprawdzenie, czy plansza sudoku jest dostępna
+                if (viewModel.sudokuBoard.value == null) {
+                    Log.e(TAG, "### DIAGNOSTYKA KLIENTA ### BŁĄD: Próba nawigacji z brakiem planszy sudoku!")
+                    Toast.makeText(this, "Błąd: Brak danych planszy Sudoku", Toast.LENGTH_LONG).show()
+                    return@let
+                }
+
+                Log.d(TAG, "### DIAGNOSTYKA KLIENTA ### Plansza dostępna, pierwszy wiersz: ${viewModel.sudokuBoard.value?.get(0)?.joinToString()}")
+
+                // Rozpoczynanie aktywności
+                try {
+                    val intent = Intent(this, CompetitiveMultiplayerActivity::class.java)
+                    Log.d(TAG, "### DIAGNOSTYKA KLIENTA ### Wywołuję startActivity()")
+                    startActivity(intent)
+                    Log.d(TAG, "### DIAGNOSTYKA KLIENTA ### Aktywność uruchomiona")
+                } catch (e: Exception) {
+                    Log.e(TAG, "### DIAGNOSTYKA KLIENTA ### Błąd podczas uruchamiania aktywności: ${e.message}", e)
+                    Toast.makeText(this, "Błąd uruchomienia gry: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            } ?: run {
+                Log.w(TAG, "### DIAGNOSTYKA KLIENTA ### Event nawigacji już obsłużony lub null")
+            }
+        }
 
         viewModel.createGroupEvent.observe(this) { event ->
             event.getContentIfNotHandled()?.let {

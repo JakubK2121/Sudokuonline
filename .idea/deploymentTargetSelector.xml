@@ -2,25 +2,18 @@
 <project version="4">
   <component name="deploymentTargetSelector">
     <selectionStates>
-      <SelectionState runConfigName="app">
-        <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2025-06-05T21:19:34.973728200Z">
-          <Target type="DEFAULT_BOOT">
-            <handle>
-              <DeviceId pluginId="PhysicalDevice" identifier="serial=RF8M414TGTB" />
-            </handle>
-          </Target>
-        </DropdownSelection>
+      <SelectionState runConfigName="Unnamed">
+        <option name="selectionMode" value="DIALOG" />
         <DialogSelection>
           <targets>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\dudif\.android\avd\Medium_Phone2.avd" />
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=ROZH9TAU85PJDUUK" />
               </handle>
             </Target>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\dudif\.android\avd\Medium_Phone.avd" />
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=GSM9X18C18G01903" />
               </handle>
             </Target>
           </targets>
