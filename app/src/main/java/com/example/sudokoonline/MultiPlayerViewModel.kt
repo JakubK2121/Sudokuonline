@@ -1042,7 +1042,34 @@ class MultiPlayerViewModel : ViewModel() {
     fun onCellValueUpdated(row: Int, col: Int, value: Int) {
         val currentBoard = _sudokuBoard.value ?: return
 
-        // Aktualizuj planszę
+        // Sprawdzamy, czy komórka jest stała (początkowa komórka planszy)
+        if (currentBoard[row][col] != 0 && initialFilledCells > 0) {
+            var isFixedCell = false
+            for (i in 0 until initialFilledCells) {
+                if (row == i / 9 && col == i % 9 && currentBoard[row][col] != 0) {
+                    isFixedCell = true
+                    break
+                }
+            }
+            if (isFixedCell) {
+                showToast("Nie można zmienić tej komórki.")
+                return
+            }
+        }
+
+        // Sprawdź poprawność ruchu według zasad Sudoku (tylko dla cyfr 1-9)
+        if (value != 0) {
+            // Tworzymy kopię planszy do walidacji i usuwamy obecną wartość
+            val boardForValidation = currentBoard.map { it.clone() }.toTypedArray()
+            boardForValidation[row][col] = 0  // Usuwamy starą wartość przed walidacją
+
+            if (!SudokuLogic.isValidPlayerMove(boardForValidation, row, col, value)) {
+                showToast("Niepoprawny ruch! Cyfra $value już istnieje w wierszu, kolumnie lub bloku.")
+                return  // Nie aktualizujemy planszy, jeśli ruch jest niepoprawny
+            }
+        }
+
+        // Aktualizuj planszę (tylko jeśli ruch jest poprawny)
         currentBoard[row][col] = value
         _sudokuBoard.value = currentBoard
 
