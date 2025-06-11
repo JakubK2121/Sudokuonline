@@ -23,6 +23,9 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import com.example.sudokoonline.multiplayer.model.GameStatus
 import android.app.Application // Dodano import
+import nl.dionsegijn.konfetti.KonfettiView
+import nl.dionsegijn.konfetti.models.Shape
+import nl.dionsegijn.konfetti.models.Size
 
 
 class CompetitiveMultiplayerActivity : AppCompatActivity() {
@@ -39,6 +42,7 @@ class CompetitiveMultiplayerActivity : AppCompatActivity() {
     private lateinit var opponentProgressBar: ProgressBar
     private lateinit var myProgressTextView: TextView
     private lateinit var opponentProgressTextView: TextView
+    private lateinit var konfettiView: KonfettiView // Dodana referencja do widoku konfetti
 
     private val thinLinePx = 1// Grubość cienkiej linii
     private val thickLinePx = 3 // Grubość grubej linii
@@ -118,6 +122,7 @@ class CompetitiveMultiplayerActivity : AppCompatActivity() {
         opponentProgressBar = findViewById(R.id.opponentProgressBar)
         myProgressTextView = findViewById(R.id.myProgressTextView)
         opponentProgressTextView = findViewById(R.id.opponentProgressTextView)
+        konfettiView = findViewById(R.id.konfettiView) // Inicjalizacja widoku konfetti
     }
 
     private fun setupBoardUI() {
@@ -302,6 +307,11 @@ class CompetitiveMultiplayerActivity : AppCompatActivity() {
         viewModel.myProgress.observe(this, Observer { progress ->
             myProgressBar.progress = progress
             myProgressTextView.text = "$progress%"
+
+            // Uruchom konfetti, gdy osiągniemy 100%
+            if (progress == 100) {
+                celebrateWithConfetti()
+            }
         })
 
         // Obserwuj postęp przeciwnika
@@ -324,6 +334,7 @@ class CompetitiveMultiplayerActivity : AppCompatActivity() {
                 if (isWinner) {
                     gameStatusText.text = "Wygrałeś!"
                     Toast.makeText(this, "Wygrałeś! Gratulacje!", Toast.LENGTH_LONG).show()
+                    celebrateWithConfetti() // Dodane wywołanie konfetti przy wygranej
                 } else {
                     gameStatusText.text = "Przegrałeś!"
                     Toast.makeText(this, "Tym razem przeciwnik był szybszy. Spróbuj ponownie!", Toast.LENGTH_LONG).show()
@@ -425,10 +436,20 @@ class CompetitiveMultiplayerActivity : AppCompatActivity() {
         }
     }
 
-    override fun onBackPressed() {
-        // Obsługa przycisku wstecz - potwierdzenie wyjścia z gry
-        // TODO: Dodaj dialog potwierdzenia wyjścia z gry
-        super.onBackPressed()
+    /**
+     * Metoda uruchamiająca animację konfetti jako świętowanie wygranej lub ukończenia planszy
+     */
+    private fun celebrateWithConfetti() {
+        konfettiView.build()
+            .addColors(Color.YELLOW, Color.GREEN, Color.MAGENTA, Color.CYAN, Color.RED, Color.BLUE)
+            .setDirection(0.0, 359.0) // wszystkie kierunki
+            .setSpeed(1f, 5f)
+            .setFadeOutEnabled(true)
+            .setTimeToLive(2000L) // czas trwania w milisekundach
+            .addShapes(Shape.Square, Shape.Circle)
+            .addSizes(Size(12))
+            .setPosition(konfettiView.width / 2f, konfettiView.height / 3f) // Pozycja startowa (środek-góra)
+            .streamFor(300, 2000L) // ilość cząsteczek i czas trwania emisji
     }
 }
 

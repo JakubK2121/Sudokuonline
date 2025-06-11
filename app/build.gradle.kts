@@ -39,13 +39,14 @@ dependencies {
 
     implementation(libs.androidx.core.ktx)
     implementation("androidx.lifecycle:lifecycle-viewmodel-ktx:2.7.0")
-    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0") // Użyj najnowszej stabilnej wersji
-    implementation("androidx.activity:activity-ktx:1.9.0") // Użyj najnowszej stabilnej wersji
+    implementation("androidx.lifecycle:lifecycle-livedata-ktx:2.7.0")
+    implementation("androidx.activity:activity-ktx:1.9.0")
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation("com.google.code.gson:gson:2.10.1") // Dodana zależność Gson
+    implementation("com.google.code.gson:gson:2.10.1")
+    implementation("nl.dionsegijn:konfetti:1.3.2")
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
