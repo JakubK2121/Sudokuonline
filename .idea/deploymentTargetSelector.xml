@@ -8,12 +8,12 @@
           <targets>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="PhysicalDevice" identifier="serial=ROZH9TAU85PJDUUK" />
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=GSM9X18C18G01903" />
               </handle>
             </Target>
             <Target type="DEFAULT_BOOT">
               <handle>
-                <DeviceId pluginId="PhysicalDevice" identifier="serial=GSM9X18C18G01903" />
+                <DeviceId pluginId="PhysicalDevice" identifier="serial=ROZH9TAU85PJDUUK" />
               </handle>
             </Target>
           </targets>

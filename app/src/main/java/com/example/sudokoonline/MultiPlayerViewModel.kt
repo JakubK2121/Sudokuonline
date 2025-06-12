@@ -10,13 +10,8 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
-
 import com.example.sudokoonline.util.Event
-import com.example.sudokoonline.util.SudokuLogic // Dodany import klasy SudokuLogic
-// import kotlinx.coroutines.CoroutineScope // Już jest viewModelScope
-// import kotlinx.coroutines.Dispatchers // Używane bezpośrednio
-// import kotlinx.coroutines.Job // Używane dla communicationJob
-// import kotlinx.coroutines.isActive // Import dla top-level isActive
+import com.example.sudokoonline.util.SudokuLogic
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
@@ -26,12 +21,9 @@ import java.net.InetAddress
 import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
-import kotlinx.coroutines.Job // Dodano dla typu communicationJob
-import kotlinx.coroutines.isActive // Dodano dla sprawdzania statusu korutyny
+import kotlinx.coroutines.Job
 import com.example.sudokoonline.multiplayer.model.GameState
 import com.example.sudokoonline.multiplayer.model.GameStatus
-import com.example.sudokoonline.multiplayer.model.PlayerState
-import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 
 class MultiPlayerViewModel : ViewModel() {
@@ -57,18 +49,15 @@ class MultiPlayerViewModel : ViewModel() {
     private val _isCommunicationLayoutVisible = MutableLiveData(false)
     val isCommunicationLayoutVisible: LiveData<Boolean> get() = _isCommunicationLayoutVisible
 
-    // Nowe zmienne LiveData dla przycisku "Grajmy!"
     private val _isStartGameButtonVisible = MutableLiveData(false)
     val isStartGameButtonVisible: LiveData<Boolean> get() = _isStartGameButtonVisible
 
-    // Flagi gotowości graczy
     private var _isLocalPlayerReady = MutableLiveData(false)
     val isLocalPlayerReady: LiveData<Boolean> get() = _isLocalPlayerReady
 
     private var _isOpponentReady = MutableLiveData(false)
     val isOpponentReady: LiveData<Boolean> get() = _isOpponentReady
 
-    // Flaga czy obaj gracze są gotowi
     private val _areBothPlayersReady = MutableLiveData(false)
     val areBothPlayersReady: LiveData<Boolean> get() = _areBothPlayersReady
 
@@ -117,22 +106,17 @@ class MultiPlayerViewModel : ViewModel() {
     }
 
 
-    // Zmienne dla trybu gry wieloosobowej
     private val gson = GsonBuilder().setLenient().create()
 
-    // Stan gry
     private val _gameState = MutableLiveData<GameState>()
     val gameState: LiveData<GameState> get() = _gameState
 
-    // Informacje o tym urządzeniu
     private var myDeviceId: String = ""
     private var myDeviceName: String = "Gracz"
 
-    // Tablica Sudoku dla obu graczy
     private val _sudokuBoard = MutableLiveData<Array<IntArray>>()
     val sudokuBoard: LiveData<Array<IntArray>> get() = _sudokuBoard
 
-    // Rozwiązanie tablicy Sudoku
     private var sudokuSolution: Array<IntArray>? = null
 
     // Postęp mojego gracza (procent)
@@ -291,7 +275,7 @@ class MultiPlayerViewModel : ViewModel() {
         } else {
             if (currentGroupInfo == null || !currentGroupInfo!!.groupFormed) {
                 updateStatus(message)
-                resetToDefaultStateButKeepStatus()
+                resetToDefaultState()
             }
         }
     }
@@ -392,14 +376,6 @@ class MultiPlayerViewModel : ViewModel() {
         _isDisconnectButtonVisible.value = false
         _isCommunicationLayoutVisible.value = false
     }
-
-    fun resetToDefaultStateButKeepStatus() {
-        _isHostButtonEnabled.value = true
-        _isDiscoverButtonEnabled.value = true
-        _isDisconnectButtonVisible.value = false
-        _isCommunicationLayoutVisible.value = false
-    }
-
 
     private fun startServerSocket() {
         if (serverSocket != null && !serverSocket!!.isClosed) {
@@ -564,6 +540,7 @@ class MultiPlayerViewModel : ViewModel() {
                 Log.d(TAG, "Message content: $messageJson")
             }
 
+            // Sprawdzamy, czy może istnieć wiele wiadomości JSON
             // Sprawdzamy, czy wiadomość jest poprawnym obiektem JSON
             val trimmedMessage = messageJson.trim()
             if (!trimmedMessage.startsWith("{")) {
@@ -572,21 +549,57 @@ class MultiPlayerViewModel : ViewModel() {
                 return
             }
 
-            val message = gson.fromJson(messageJson, MultiplayerMessage::class.java)
-            Log.d(TAG, "Message type: ${message.type}, payload length: ${message.payload.length}")
+            try {
+                // Używamy JsonReader dla większej kontroli nad parsowaniem
+                val reader = com.google.gson.stream.JsonReader(java.io.StringReader(trimmedMessage))
+                reader.isLenient = true  // Pozwala na bardziej elastyczne parsowanie
 
-            when (message.type) {
-                MESSAGE_TYPE_PLAYER_INFO -> handlePlayerInfoMessage(message.payload)
-                MESSAGE_TYPE_GAME_START -> {
-                    Log.d(TAG, "Received GAME_START message, processing...")
-                    handleGameStartMessage(message.payload)
-                    showToast("Odebrano planszę od hosta!")
+                // Używamy TypeToken do prawidłowej deserializacji
+                val messageType = com.google.gson.reflect.TypeToken.get(MultiplayerMessage::class.java)
+                val message = gson.fromJson<MultiplayerMessage>(reader, messageType.type)
+
+                Log.d(TAG, "Message type: ${message.type}, payload length: ${message.payload.length}")
+
+                when (message.type) {
+                    MESSAGE_TYPE_PLAYER_INFO -> handlePlayerInfoMessage(message.payload)
+                    MESSAGE_TYPE_GAME_START -> {
+                        Log.d(TAG, "Received GAME_START message, processing...")
+                        handleGameStartMessage(message.payload)
+                        showToast("Odebrano planszę od hosta!")
+                    }
+
+                    MESSAGE_TYPE_PROGRESS_UPDATE -> handleProgressUpdateMessage(message.payload)
+                    MESSAGE_TYPE_GAME_COMPLETE -> handleGameCompleteMessage(message.payload)
+                    MESSAGE_TYPE_PLAYER_READY -> handlePlayerReadyMessage(message.payload)
+                    else -> Log.w(TAG, "Unknown message type: ${message.type}")
                 }
+            } catch (e: com.google.gson.JsonSyntaxException) {
+                // Szczegółowy log dla problemu z parsowaniem JSON
+                Log.e(TAG, "JSON parsing error: ${e.message}", e)
 
-                MESSAGE_TYPE_PROGRESS_UPDATE -> handleProgressUpdateMessage(message.payload)
-                MESSAGE_TYPE_GAME_COMPLETE -> handleGameCompleteMessage(message.payload)
-                MESSAGE_TYPE_PLAYER_READY -> handlePlayerReadyMessage(message.payload)
-                else -> Log.w(TAG, "Unknown message type: ${message.type}")
+                // Próba alternatywnego podejścia - dzielenie na pojedyncze wiadomości JSON
+                if (trimmedMessage.contains("}{")) {
+                    Log.d(TAG, "Detected multiple JSON messages in stream, attempting split processing")
+                    // Prosta heurystyka do dzielenia wiadomości - może wymagać dostosowania
+                    val jsonPattern = "\\{[^{}]*\\}"
+                    val pattern = java.util.regex.Pattern.compile(jsonPattern)
+                    val matcher = pattern.matcher(trimmedMessage)
+
+                    var found = false
+                    while (matcher.find()) {
+                        found = true
+                        val singleJson = matcher.group()
+                        Log.d(TAG, "Processing split JSON part: ${singleJson.take(50)}...")
+                        // Rekurencyjne przetwarzanie pojedynczej wiadomości JSON
+                        processReceivedMessage(singleJson)
+                    }
+
+                    if (!found) {
+                        Log.e(TAG, "Failed to extract valid JSON objects after split attempt")
+                    }
+                } else {
+                    throw e // Ponownie rzuć wyjątek, jeśli nie ma wielu wiadomości
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error processing message: ${e.message}", e)
@@ -672,10 +685,6 @@ class MultiPlayerViewModel : ViewModel() {
                     "### DIAGNOSTYKA KLIENTA ### Plansza poprawnie ustawiona w _sudokuBoard. Pierwszy wiersz: ${boardAfterSet[0].joinToString()}"
                 )
 
-                // Wyślij potwierdzenie odbioru planszy do hosta
-                if (_isHost.value != true) {
-                    sendBoardReceivedConfirmation()
-                }
             } else {
                 Log.e(TAG, "### DIAGNOSTYKA KLIENTA ### BŁĄD: _sudokuBoard.value nadal jest null po ustawieniu!")
                 return
@@ -1349,9 +1358,9 @@ class MultiPlayerViewModel : ViewModel() {
         const val MESSAGE_TYPE_PROGRESS_UPDATE = "PROGRESS_UPDATE"
         const val MESSAGE_TYPE_GAME_COMPLETE = "GAME_COMPLETE"
         const val MESSAGE_TYPE_PLAYER_READY = "PLAYER_READY"
-        const val MESSAGE_TYPE_BOARD_RECEIVED = "BOARD_RECEIVED" // Nowy typ dla potwierdzenia odbioru planszy
 
-        // NOWA UPROSZCZONA TABLICA - Z BARDZO MAŁĄ LICZBĄ PUSTYCH KOMÓREK (TYLKO 9)
+
+        // NOWA UPROSZCZONA TABLICA
         val SIMPLE_TEST_BOARD = arrayOf(
             intArrayOf(5, 3, 4, 6, 7, 8, 9, 1, 2),
             intArrayOf(6, 7, 2, 1, 9, 5, 3, 4, 8),
@@ -1460,30 +1469,4 @@ class MultiPlayerViewModel : ViewModel() {
         val success: Boolean,
         val message: String = ""
     )
-    /**
-     * Wysyłanie potwierdzenia odbioru planszy przez klienta
-     */
-    private fun sendBoardReceivedConfirmation() {
-        try {
-            Log.d(TAG, "Sending board received confirmation to host")
-
-            val boardReceivedMsg = BoardReceivedMessage(
-                deviceId = myDeviceId,
-                success = true,
-                message = "Plansza odebrana poprawnie"
-            )
-
-            val message = MultiplayerMessage(
-                type = MESSAGE_TYPE_BOARD_RECEIVED,
-                payload = gson.toJson(boardReceivedMsg)
-            )
-
-            val messageJson = gson.toJson(message)
-            sendMessage(messageJson)
-
-            Log.d(TAG, "Board received confirmation sent to host")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error sending board received confirmation: ${e.message}", e)
-        }
-    }
 }
